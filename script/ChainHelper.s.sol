@@ -10,8 +10,8 @@ import "forge-std/Script.sol";
  */
 contract ChainHelper is Script {
     enum Chain {
-        Mainnet,
-        BSC,
+        SepoliaTestnet,
+        BNBTestnet,
         Local
     }
 
@@ -29,28 +29,28 @@ contract ChainHelper is Script {
     mapping(Chain => ChainConfig) public chainConfigs;
 
     constructor() {
-        // Ethereum Mainnet Configuration
-        chainConfigs[Chain.Mainnet] = ChainConfig({
-            ethUsdFeed: 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419,
-            xauUsdFeed: 0x214eD9Da11D2fbe465a6fc601a91E62EbEc1a0D6,
-            router: 0xE561d5E02207fb5eB32cca20a699E0d8919a1476,
-            link: 0x514910771AF9Ca656af840dff83E8264EcF986CA,
-            vrfCoordinator: 0x271682DEB8C4E0901D1a1550aD2e64D568E69909,
-            keyHash: 0x8af398995b04c28e9951adb9721ef74c74f93e6a478f39e7e0777be13527e7ef,
+        // Sepolia Testnet Configuration
+        chainConfigs[Chain.SepoliaTestnet] = ChainConfig({
+            ethUsdFeed: 0x694AA1769357215DE4FAC081bf1f309aDC325306, // ETH/USD Sepolia
+            xauUsdFeed: 0x7b219F57a8e9C7303204Af681e9fA69d17ef626f, // XAU/USD Sepolia
+            router: 0xD0daae2231E9CB96b94C8512223533293C3693Bf, // CCIP Router Sepolia
+            link: 0x779877A7B0D9E8603169DdbD7836e478b4624789,  // LINK Token Sepolia
+            vrfCoordinator: 0x8103B0A8A00be2DDC778e6e7eaa21791Cd364625, // VRF Coordinator Sepolia
+            keyHash: 0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c,
             subscriptionId: 0, // To be filled
-            chainSelector: 5009297550715157269 // Ethereum mainnet selector
+            chainSelector: 16015286601757825753 // Sepolia chain selector
         });
 
-        // BSC Configuration
-        chainConfigs[Chain.BSC] = ChainConfig({
-            ethUsdFeed: address(0), // Not used on BSC
-            xauUsdFeed: address(0), // Not used on BSC
-            router: 0x536d7E53D0aDeB1F20E7c81fea45d02eC9dBD698,
-            link: 0x404460C6A5EdE2D891e8297795264fDe62ADBB75,
-            vrfCoordinator: 0x721DFbc5Cfe53d32ab00A9bdFa605d3b8E1f3f42,
-            keyHash: 0x84c5c015f9974ea91be7ee57676d2891e64f931068efaaf1e14c6dbb9ee54618,
+        // BNB Testnet Configuration
+        chainConfigs[Chain.BNBTestnet] = ChainConfig({
+            ethUsdFeed: 0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526, // BNB/USD BSC Testnet
+            xauUsdFeed: 0x4962e69104cCb255133811b53A78D54385ee60D0, // Gold/USD BSC Testnet
+            router: 0x9527E2d01A3064ef6b50c1Da1C0cC523803BCDF3, // CCIP Router BSC Testnet
+            link: 0x84b9B910527Ad5C03A9Ca831909E21e236EA7b06,  // LINK Token BSC Testnet
+            vrfCoordinator: 0x6A2AAd07396B36Fe02a22b33cf443582f682c82f, // VRF Coordinator BSC Testnet
+            keyHash: 0xd4bb89654db74673a187bd804519e65e3f71a52bc55f11da7601a13dcf505314,
             subscriptionId: 0, // To be filled
-            chainSelector: 13264668187771770619 // BSC mainnet selector
+            chainSelector: 13264668187771770619 // BSC Testnet chain selector
         });
 
         // Local Configuration (for testing)
@@ -78,10 +78,10 @@ contract ChainHelper is Script {
         }
 
         // Determine chain based on chainId
-        if (chainId == 1) {
-            return Chain.Mainnet;
-        } else if (chainId == 56) {
-            return Chain.BSC;
+        if (chainId == 11155111) {
+            return Chain.SepoliaTestnet;
+        } else if (chainId == 97) {
+            return Chain.BNBTestnet;
         } else {
             return Chain.Local;
         }
