@@ -1,209 +1,134 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/AutomationCompatibleInterface.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
-import "@chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
-import "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./interfaces/IGoldLottery.sol";
 
 contract GoldLottery is 
-    IGoldLottery, 
-    UUPSUpgradeable, 
+    Initializable, 
+    VRFConsumerBaseV2, 
     OwnableUpgradeable, 
-    VRFConsumerBaseV2,
-    AutomationCompatibleInterface
+    AutomationCompatibleInterface, 
+    IGoldLottery 
 {
-    // VRF Coordinator
-    VRFCoordinatorV2Interface private vrfCoordinator;
-    bytes32 private keyHash;
-    uint64 private subscriptionId;
-    uint32 private constant CALLBACK_GAS_LIMIT = 100000;
-    uint16 private constant REQUEST_CONFIRMATIONS = 3;
-    uint32 private constant NUM_WORDS = 1;
+    VRFCoordinatorV2Interface immutable COORDINATOR;
+    
+    // Lottery configuration
+    uint256 public constant ENTRY_PRICE = 1 ether;
+    uint256 public constant LOTTERY_DURATION = 7 days;
 
-    // Lottery Settings
-    uint256 private drawInterval;
-    uint256 private minimumPrizePool;
-    mapping(uint256 => address[]) private roundParticipants;
-    
-    // Round management
-    uint256 private currentRoundId;
-    mapping(uint256 => Round) private rounds;
-    mapping(uint256 => uint256) private requestIdToRoundId;
-    
-    // Constants
-    uint256 private constant MIN_DRAW_INTERVAL = 1 days;
-    uint256 private constant MAX_DRAW_INTERVAL = 30 days;
-    
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address _vrfCoordinator) VRFConsumerBaseV2(_vrfCoordinator) {
-        _disableInitializers();
+    // VRF Configuration
+    bytes32 public keyHash;
+    uint64 public subscriptionId;
+
+    // Lottery state
+    uint256 public currentRoundId;
+    mapping(uint256 => Round) public rounds;
+    mapping(uint256 => address[]) public roundEntrants;
+    mapping(address => uint256) public lastEntryRound;
+
+    event LotteryRoundStarted(uint256 indexed roundId, uint256 startTime);
+    event LotteryEntryReceived(address indexed entrant, uint256 indexed roundId);
+    event LotteryWinnerSelected(uint256 indexed roundId, address winner, uint256 prize);
+
+    constructor(
+        address vrfCoordinator
+    ) VRFConsumerBaseV2(vrfCoordinator) {
+        COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
     }
 
     function initialize(
-        address _vrfCoordinator,
+        address vrfCoordinator,
         bytes32 _keyHash,
         uint64 _subscriptionId,
-        uint256 _interval,
-        uint256 _minimumPrize
-    ) external initializer {
-        require(_vrfCoordinator != address(0), "Invalid VRF coordinator");
-        require(_interval >= MIN_DRAW_INTERVAL, "Interval too short");
-        require(_interval <= MAX_DRAW_INTERVAL, "Interval too long");
-        
+        uint256 duration,
+        uint256 entryPrice
+    ) public initializer {
         __Ownable_init(msg.sender);
-        __UUPSUpgradeable_init();
-        
-        vrfCoordinator = VRFCoordinatorV2Interface(_vrfCoordinator);
+        COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
         keyHash = _keyHash;
         subscriptionId = _subscriptionId;
-        drawInterval = _interval;
-        minimumPrizePool = _minimumPrize;
+
+        currentRoundId = 1;
+        rounds[currentRoundId].startTime = block.timestamp;
         
-        _startNewRound();
+        emit LotteryRoundStarted(currentRoundId, block.timestamp);
     }
 
-    function receiveFunds() external payable override {
-        require(msg.value > 0, "No funds sent");
+    function enterLottery() external payable {
+        require(msg.value >= ENTRY_PRICE, "Insufficient entry fee");
         
-        rounds[currentRoundId].prizePool += msg.value;
+        Round storage currentRound = rounds[currentRoundId];
+        require(block.timestamp <= currentRound.startTime + LOTTERY_DURATION, "Lottery round expired");
         
-        address[] storage participants = roundParticipants[currentRoundId];
-        bool isNewParticipant = true;
+        // Ensure user enters only once per round
+        require(lastEntryRound[msg.sender] < currentRoundId, "Already entered this round");
         
-        for (uint256 i = 0; i < participants.length; i++) {
-            if (participants[i] == msg.sender) {
-                isNewParticipant = false;
-                break;
-            }
-        }
+        roundEntrants[currentRoundId].push(msg.sender);
+        lastEntryRound[msg.sender] = currentRoundId;
+        currentRound.prizePool += msg.value;
         
-        if (isNewParticipant) {
-            participants.push(msg.sender);
-        }
-        
-        emit FundsReceived(msg.sender, msg.value);
-    }
-
-    function startNewRound() external override {
-        require(msg.sender == address(this) || msg.sender == owner(), "Unauthorized");
-        _startNewRound();
-    }
-
-    function _startNewRound() private {
-        currentRoundId++;
-        rounds[currentRoundId] = Round({
-            startTime: block.timestamp,
-            endTime: block.timestamp + drawInterval,
-            prizePool: 0,
-            winner: address(0),
-            isComplete: false,
-            prizeClaimed: false
-        });
-        
-        emit LotteryStarted(currentRoundId, block.timestamp);
-    }
-
-    function fulfillRandomWords(
-        uint256 requestId,
-        uint256[] memory randomWords
-    ) internal virtual override(VRFConsumerBaseV2) {
-        require(randomWords.length > 0, "No random words");
-        
-        uint256 roundId = requestIdToRoundId[requestId];
-        require(!rounds[roundId].isComplete, "Round already complete");
-        
-        address[] memory participants = roundParticipants[roundId];
-        require(participants.length > 0, "No participants");
-        
-        uint256 winnerIndex = randomWords[0] % participants.length;
-        address winner = participants[winnerIndex];
-        
-        rounds[roundId].winner = winner;
-        rounds[roundId].isComplete = true;
-        
-        emit LotteryEnded(roundId, winner, rounds[roundId].prizePool);
-        
-        _startNewRound();
-    }
-
-    function claimPrize(uint256 roundId) external override {
-        Round storage round = rounds[roundId];
-        require(round.isComplete, "Round not complete");
-        require(round.winner == msg.sender, "Not winner");
-        require(!round.prizeClaimed, "Prize already claimed");
-        
-        round.prizeClaimed = true;
-        uint256 prize = round.prizePool;
-        
-        (bool success, ) = msg.sender.call{value: prize}("");
-        require(success, "Transfer failed");
-        
-        emit PrizeWithdrawn(msg.sender, prize);
+        emit LotteryEntryReceived(msg.sender, currentRoundId);
     }
 
     function checkUpkeep(
-        bytes calldata checkData
-    ) external view override(IGoldLottery, AutomationCompatibleInterface) returns (bool upkeepNeeded, bytes memory performData) {
+        bytes memory /* checkData */
+    ) public view override returns (bool upkeepNeeded, bytes memory performData) {
         Round memory currentRound = rounds[currentRoundId];
-        upkeepNeeded = block.timestamp >= currentRound.endTime && 
-                       currentRound.prizePool >= minimumPrizePool &&
-                       !currentRound.isComplete &&
-                       roundParticipants[currentRoundId].length > 0;
+        upkeepNeeded = block.timestamp >= currentRound.startTime + LOTTERY_DURATION 
+            && roundEntrants[currentRoundId].length > 0;
         
         return (upkeepNeeded, "");
     }
 
-    function performUpkeep(bytes calldata performData) external override(IGoldLottery, AutomationCompatibleInterface) {
-        (bool upkeepNeeded, ) = this.checkUpkeep("");
+    function performUpkeep(bytes calldata /* performData */) external override {
+        (bool upkeepNeeded, ) = checkUpkeep("");
         require(upkeepNeeded, "Upkeep not needed");
-        
-        uint256 requestId = vrfCoordinator.requestRandomWords(
+
+        // Request random winner
+        COORDINATOR.requestRandomWords(
             keyHash,
             subscriptionId,
-            REQUEST_CONFIRMATIONS,
-            CALLBACK_GAS_LIMIT,
-            NUM_WORDS
+            3, // Request confirmations
+            500000, // Callback gas limit
+            1 // Number of random words
         );
-        
-        requestIdToRoundId[requestId] = currentRoundId;
     }
 
-    function getCurrentRound() external view override returns (uint256) {
+    function fulfillRandomWords(
+        uint256 /* requestId */, 
+        uint256[] memory randomWords
+    ) internal override {
+        uint256 winnerIndex = randomWords[0] % roundEntrants[currentRoundId].length;
+        address winner = roundEntrants[currentRoundId][winnerIndex];
+        
+        Round storage currentRound = rounds[currentRoundId];
+        uint256 prize = currentRound.prizePool;
+        
+        // Transfer prize to winner
+        (bool success, ) = payable(winner).call{value: prize}("");
+        require(success, "Prize transfer failed");
+        
+        emit LotteryWinnerSelected(currentRoundId, winner, prize);
+        
+        // Start new round
+        currentRoundId++;
+        rounds[currentRoundId].startTime = block.timestamp;
+        
+        emit LotteryRoundStarted(currentRoundId, block.timestamp);
+    }
+
+    function getCurrentRound() external view returns (uint256) {
         return currentRoundId;
     }
 
-    function getRoundInfo(uint256 roundId) external view override returns (Round memory) {
+    function getRoundInfo(uint256 roundId) external view returns (Round memory) {
         return rounds[roundId];
     }
 
-    function getRoundParticipants(uint256 roundId) external view returns (address[] memory) {
-        return roundParticipants[roundId];
-    }
-
-    function setDrawInterval(uint256 _interval) external override onlyOwner {
-        require(_interval >= MIN_DRAW_INTERVAL, "Interval too short");
-        require(_interval <= MAX_DRAW_INTERVAL, "Interval too long");
-        drawInterval = _interval;
-    }
-
-    function setMinimumPrizePool(uint256 _minimum) external override onlyOwner {
-        minimumPrizePool = _minimum;
-    }
-
-    function emergencyWithdraw() external override onlyOwner {
-        uint256 balance = address(this).balance;
-        require(balance > 0, "No balance to withdraw");
-        
-        (bool success, ) = msg.sender.call{value: balance}("");
-        require(success, "Transfer failed");
-    }
-
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
-
-    receive() external payable {
-        this.receiveFunds();
-    }
+    receive() external payable {}
 }
