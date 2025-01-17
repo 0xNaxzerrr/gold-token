@@ -9,7 +9,7 @@ import "forge-std/Script.sol";
  * @notice Helper contract for chain detection and configuration
  */
 contract ChainHelper is Script {
-    enum Chain {
+    enum ChainType {
         SepoliaTestnet,
         BNBTestnet,
         Local
@@ -26,11 +26,11 @@ contract ChainHelper is Script {
         uint64 chainSelector;
     }
 
-    mapping(Chain => ChainConfig) public chainConfigs;
+    mapping(ChainType => ChainConfig) public chainConfigs;
 
     constructor() {
         // Sepolia Testnet Configuration
-        chainConfigs[Chain.SepoliaTestnet] = ChainConfig({
+        chainConfigs[ChainType.SepoliaTestnet] = ChainConfig({
             ethUsdFeed: 0x694AA1769357215DE4FAC081bf1f309aDC325306, // ETH/USD Sepolia
             xauUsdFeed: 0x7b219F57a8e9C7303204Af681e9fA69d17ef626f, // XAU/USD Sepolia
             router: 0xD0daae2231E9CB96b94C8512223533293C3693Bf, // CCIP Router Sepolia
@@ -42,7 +42,7 @@ contract ChainHelper is Script {
         });
 
         // BNB Testnet Configuration
-        chainConfigs[Chain.BNBTestnet] = ChainConfig({
+        chainConfigs[ChainType.BNBTestnet] = ChainConfig({
             ethUsdFeed: 0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526, // BNB/USD BSC Testnet
             xauUsdFeed: 0x4962e69104cCb255133811b53A78D54385ee60D0, // Gold/USD BSC Testnet
             router: 0x9527E2d01A3064ef6b50c1Da1C0cC523803BCDF3, // CCIP Router BSC Testnet
@@ -54,7 +54,7 @@ contract ChainHelper is Script {
         });
 
         // Local Configuration (for testing)
-        chainConfigs[Chain.Local] = ChainConfig({
+        chainConfigs[ChainType.Local] = ChainConfig({
             ethUsdFeed: address(1),
             xauUsdFeed: address(2),
             router: address(3),
@@ -68,9 +68,9 @@ contract ChainHelper is Script {
 
     /**
      * @notice Detects the current chain based on known characteristics
-     * @return chain The detected chain enum
+     * @return chain The detected chain type
      */
-    function detectChain() public view returns (Chain) {
+    function detectChain() public view returns (ChainType) {
         // Get chainId
         uint256 chainId;
         assembly {
@@ -79,11 +79,11 @@ contract ChainHelper is Script {
 
         // Determine chain based on chainId
         if (chainId == 11155111) {
-            return Chain.SepoliaTestnet;
+            return ChainType.SepoliaTestnet;
         } else if (chainId == 97) {
-            return Chain.BNBTestnet;
+            return ChainType.BNBTestnet;
         } else {
-            return Chain.Local;
+            return ChainType.Local;
         }
     }
 
@@ -92,7 +92,7 @@ contract ChainHelper is Script {
      * @return config The chain configuration
      */
     function getChainConfig() public view returns (ChainConfig memory) {
-        Chain currentChain = detectChain();
+        ChainType currentChain = detectChain();
         return chainConfigs[currentChain];
     }
 
@@ -101,7 +101,7 @@ contract ChainHelper is Script {
      * @param subscriptionId New subscription ID
      */
     function setSubscriptionId(uint64 subscriptionId) public {
-        Chain currentChain = detectChain();
+        ChainType currentChain = detectChain();
         chainConfigs[currentChain].subscriptionId = subscriptionId;
     }
 }
