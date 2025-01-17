@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 interface IGoldLottery {
     // Events
     event LotteryStarted(uint256 indexed roundId, uint256 startTime);
@@ -21,24 +23,22 @@ interface IGoldLottery {
     // Core functions
     function receiveFunds() external payable;
     function startNewRound() external;
-    function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) internal;
+    function fulfillRandomWords(
+        uint256 requestId,
+        uint256[] memory randomWords
+    ) external;
     function claimPrize(uint256 roundId) external;
-    
+
     // View functions
     function getCurrentRound() external view returns (uint256);
     function getRoundInfo(uint256 roundId) external view returns (Round memory);
-    function checkUpkeep(bytes calldata checkData) external view returns (bool upkeepNeeded, bytes memory performData);
-    
+    function checkUpkeep(
+        bytes calldata checkData
+    ) external view returns (bool upkeepNeeded, bytes memory performData);
+
     // Admin functions
     function setDrawInterval(uint256 _interval) external;
     function setMinimumPrizePool(uint256 _minimum) external;
     function emergencyWithdraw() external;
-
-    function initialize(
-        address _vrfCoordinator,
-        bytes32 _keyHash,
-        uint64 _subscriptionId,
-        uint256 _interval,
-        uint256 _minimumPrize
-    ) external;
+    function performUpkeep(bytes calldata performData) external;
 }

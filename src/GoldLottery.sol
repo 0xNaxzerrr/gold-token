@@ -118,7 +118,7 @@ contract GoldLottery is
     function fulfillRandomWords(
         uint256 requestId,
         uint256[] memory randomWords
-    ) internal override(VRFConsumerBaseV2) {
+    ) external override(VRFConsumerBaseV2, IGoldLottery) {
         require(randomWords.length > 0, "No random words");
 
         uint256 roundId = requestIdToRoundId[requestId];

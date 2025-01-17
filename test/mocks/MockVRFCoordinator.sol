@@ -89,7 +89,7 @@ contract MockVRFCoordinator is VRFCoordinatorV2Interface {
         bytes32[] memory keysHash = new bytes32[](0);
         return (3, 1000000, keysHash);
     }
-    
+
     // Not implemented functions
     function cancelSubscription(uint64 subId, address to) external override {}
     function addConsumer(uint64 subId, address consumer) external override {}
@@ -102,5 +102,5 @@ contract MockVRFCoordinator is VRFCoordinatorV2Interface {
     function pendingRequestExists(
         uint64 subId
     ) external view override returns (bool) {}
-    function fundSubscription(uint64 subId, uint256 amount) external override {}
+    function fundSubscription(uint64 subId, uint256 amount) external {}
 }

@@ -62,7 +62,7 @@ contract InteractScript is Script {
             IGoldBridge bridge = IGoldBridge(GOLD_BRIDGE_BSC);
 
             uint256 chainSelector = chainHelper
-                .chainConfigs(ChainHelper.Chain.Mainnet)
+                .chainConfigs(ChainHelper.ChainType.Mainnet)
                 .chainSelector;
             uint256 fees = bridge.getFeeEstimate(
                 uint64(chainSelector),
