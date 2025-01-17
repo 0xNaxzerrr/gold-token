@@ -3,20 +3,12 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Script.sol";
 import "../src/interfaces/IGoldToken.sol";
-import "../src/interfaces/IGoldLottery.sol";
 import "../src/interfaces/IGoldBridge.sol";
 import "./ChainHelper.s.sol";
 
-/**
- * @title InteractScript
- * @author 0xNaxzerrr
- * @notice Script to interact with deployed Gold Token protocol
- */
 contract InteractScript is Script {
-    // Contract addresses - to be set before running
-    address public constant GOLD_TOKEN_ETH = address(0); // Set your deployed address
-    address public constant GOLD_TOKEN_BSC = address(0); // Set your deployed address
-    address public constant GOLD_LOTTERY = address(0); // Set your deployed address
+    address public constant GOLD_TOKEN_ETH = address(0);  // Set your deployed address
+    address public constant GOLD_TOKEN_BSC = address(0);  // Set your deployed address
     address public constant GOLD_BRIDGE_ETH = address(0); // Set your deployed address
     address public constant GOLD_BRIDGE_BSC = address(0); // Set your deployed address
 
@@ -61,14 +53,8 @@ contract InteractScript is Script {
             IGoldToken token = IGoldToken(GOLD_TOKEN_BSC);
             IGoldBridge bridge = IGoldBridge(GOLD_BRIDGE_BSC);
 
-            uint256 chainSelector = chainHelper
-                .chainConfigs(ChainHelper.ChainType.Mainnet)
-                .chainSelector;
-            uint256 fees = bridge.getFeeEstimate(
-                uint64(chainSelector),
-                msg.sender,
-                amount
-            );
+            uint64 chainSelector = uint64(chainHelper.chainConfigs(ChainHelper.ChainType.SepoliaTestnet).chainSelector);
+            uint256 fees = bridge.getFeeEstimate(chainSelector, msg.sender, amount);
 
             console.log("Bridging", amount, "tokens from BSC to ETH");
             console.log("Estimated fees:", fees);
@@ -78,7 +64,7 @@ contract InteractScript is Script {
 
             vm.broadcast();
             bridge.bridgeTokens{value: fees}(
-                uint64(chainSelector),
+                chainSelector,
                 msg.sender,
                 amount
             );
@@ -87,14 +73,8 @@ contract InteractScript is Script {
             IGoldToken token = IGoldToken(GOLD_TOKEN_ETH);
             IGoldBridge bridge = IGoldBridge(GOLD_BRIDGE_ETH);
 
-            uint256 chainSelector = chainHelper
-                .chainConfigs(ChainHelper.Chain.BSC)
-                .chainSelector;
-            uint256 fees = bridge.getFeeEstimate(
-                uint64(chainSelector),
-                msg.sender,
-                amount
-            );
+            uint64 chainSelector = uint64(chainHelper.chainConfigs(ChainHelper.ChainType.BNBTestnet).chainSelector);
+            uint256 fees = bridge.getFeeEstimate(chainSelector, msg.sender, amount);
 
             console.log("Bridging", amount, "tokens from ETH to BSC");
             console.log("Estimated fees:", fees);
@@ -104,7 +84,7 @@ contract InteractScript is Script {
 
             vm.broadcast();
             bridge.bridgeTokens{value: fees}(
-                uint64(chainSelector),
+                chainSelector,
                 msg.sender,
                 amount
             );
@@ -113,31 +93,11 @@ contract InteractScript is Script {
         console.log("Bridge transaction sent successfully");
     }
 
-    function checkLottery() public view {
-        IGoldLottery lottery = IGoldLottery(GOLD_LOTTERY);
-        uint256 currentRound = lottery.getCurrentRound();
-        IGoldLottery.Round memory round = lottery.getRoundInfo(currentRound);
-
-        console.log("Current lottery round:", currentRound);
-        console.log("Prize pool:", round.prizePool);
-        console.log("Start time:", round.startTime);
-        console.log("End time:", round.endTime);
-
-        if (round.isComplete) {
-            console.log("Round is complete");
-            console.log("Winner:", round.winner);
-            if (round.prizeClaimed) {
-                console.log("Prize has been claimed");
-            } else {
-                console.log("Prize not yet claimed");
-            }
-        } else {
-            console.log("Round is ongoing");
-            console.log("Time until draw:", round.endTime - block.timestamp);
-        }
+    function run() public virtual {
+        getPrices();
     }
 
-    function getPrices() public view {
+    function getPrices() internal view {
         IGoldToken token = IGoldToken(GOLD_TOKEN_ETH);
 
         uint256 ethPrice = token.getEthUsdPrice();
@@ -150,42 +110,24 @@ contract InteractScript is Script {
         uint256 tokensFor1ETH = token.calculateGoldTokens(1 ether);
         console.log("GOLD tokens for 1 ETH:", tokensFor1ETH);
     }
-
-    function run() public virtual {
-        // Default behavior: show current prices and lottery status
-        getPrices();
-        checkLottery();
-    }
 }
 
-/**
- * @notice Helper contract for mint interaction
- */
 contract MintScript is InteractScript {
     function run() public override {
-        // Read amount from command line
         uint256 amount = vm.envUint("MINT_AMOUNT");
         mintTokens(amount);
     }
 }
 
-/**
- * @notice Helper contract for burn interaction
- */
 contract BurnScript is InteractScript {
     function run() public override {
-        // Read amount from command line
         uint256 amount = vm.envUint("BURN_AMOUNT");
         burnTokens(amount);
     }
 }
 
-/**
- * @notice Helper contract for bridge interaction
- */
 contract BridgeScript is InteractScript {
     function run() public override {
-        // Read parameters from command line
         uint256 amount = vm.envUint("BRIDGE_AMOUNT");
         bool toETH = vm.envBool("TO_ETH");
         bridgeTokens(amount, toETH);
