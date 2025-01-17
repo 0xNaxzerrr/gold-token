@@ -107,7 +107,7 @@ contract IntegrationTest is Test {
         // Mock bridge transfer
         tokenETH.approve(address(bridgeETH), balance);
         bridgeETH.bridgeTokens{value: 0.1 ether}(
-            chainHelper.chainConfigs(ChainHelper.ChainType.BNBTestnet).chainSelector,
+            chainHelper.getChainSelector(ChainHelper.ChainType.BNBTestnet),
             USER1,
             balance
         );
