@@ -21,8 +21,8 @@ interface IGoldBridge {
         uint256 amount
     );
     
-    event BridgingPaused(address admin);
-    event BridgingResumed(address admin);
+    event BridgingPausedEvent(address admin);
+    event BridgingResumedEvent(address admin);
 
     // Errors
     error InvalidAmount();
