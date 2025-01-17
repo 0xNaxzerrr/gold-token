@@ -12,6 +12,7 @@ interface IGoldBridge {
         address feeToken,
         uint256 fees
     );
+    
     event MessageReceived(
         bytes32 indexed messageId,
         uint64 indexed sourceChainSelector,
@@ -19,6 +20,7 @@ interface IGoldBridge {
         address receiver,
         uint256 amount
     );
+    
     event BridgingPaused(address admin);
     event BridgingResumed(address admin);
 
@@ -54,4 +56,6 @@ interface IGoldBridge {
     function addSupportedChain(uint64 chainSelector) external;
     function removeSupportedChain(uint64 chainSelector) external;
     function withdrawStuckTokens(address token, address recipient) external;
+
+    function initialize(address _token) external;
 }
