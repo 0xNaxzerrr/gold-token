@@ -83,7 +83,7 @@ contract LotteryInteractScript is Script {
         console.log("Draw requested, waiting for VRF response...");
     }
 
-    function run() public {
+    function run() public virtual {
         viewLottery();
     }
 }

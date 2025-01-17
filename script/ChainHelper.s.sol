@@ -34,7 +34,7 @@ contract ChainHelper is Script {
             ethUsdFeed: 0x694AA1769357215DE4FAC081bf1f309aDC325306, // ETH/USD Sepolia
             xauUsdFeed: 0x7b219F57a8e9C7303204Af681e9fA69d17ef626f, // XAU/USD Sepolia
             router: 0xD0daae2231E9CB96b94C8512223533293C3693Bf, // CCIP Router Sepolia
-            link: 0x779877A7B0D9E8603169DdbD7836e478b4624789,  // LINK Token Sepolia
+            link: 0x779877A7B0D9E8603169DdbD7836e478b4624789, // LINK Token Sepolia
             vrfCoordinator: 0x8103B0A8A00be2DDC778e6e7eaa21791Cd364625, // VRF Coordinator Sepolia
             keyHash: 0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c,
             subscriptionId: 0, // To be filled
@@ -44,9 +44,9 @@ contract ChainHelper is Script {
         // BNB Testnet Configuration
         chainConfigs[ChainType.BNBTestnet] = ChainConfig({
             ethUsdFeed: 0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526, // BNB/USD BSC Testnet
-            xauUsdFeed: 0x4962e69104cCb255133811b53A78D54385ee60D0, // Gold/USD BSC Testnet
-            router: 0x9527E2d01A3064ef6b50c1Da1C0cC523803BCDF3, // CCIP Router BSC Testnet
-            link: 0x84b9B910527Ad5C03A9Ca831909E21e236EA7b06,  // LINK Token BSC Testnet
+            xauUsdFeed: 0x4962E69104ccb255133811b53a78D54385Ee60D0, // Gold/USD BSC Testnet
+            router: 0x9527E2D01a3064eF6B50c1DA1C0cc523803BcDf3, // CCIP Router BSC Testnet
+            link: 0x84b9B910527Ad5C03A9Ca831909E21e236EA7b06, // LINK Token BSC Testnet
             vrfCoordinator: 0x6A2AAd07396B36Fe02a22b33cf443582f682c82f, // VRF Coordinator BSC Testnet
             keyHash: 0xd4bb89654db74673a187bd804519e65e3f71a52bc55f11da7601a13dcf505314,
             subscriptionId: 0, // To be filled

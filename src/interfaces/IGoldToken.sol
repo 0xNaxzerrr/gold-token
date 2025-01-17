@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-interface IGoldToken {
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+interface IGoldToken is IERC20 {
     // Events
     event TokensMinted(address indexed user, uint256 ethAmount, uint256 goldTokens);
     event TokensBurned(address indexed user, uint256 goldTokens, uint256 ethAmount);

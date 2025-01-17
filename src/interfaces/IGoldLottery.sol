@@ -21,7 +21,7 @@ interface IGoldLottery {
     // Core functions
     function receiveFunds() external payable;
     function startNewRound() external;
-    function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) external;
+    function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) internal;
     function claimPrize(uint256 roundId) external;
     
     // View functions

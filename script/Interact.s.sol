@@ -14,9 +14,9 @@ import "./ChainHelper.s.sol";
  */
 contract InteractScript is Script {
     // Contract addresses - to be set before running
-    address public constant GOLD_TOKEN_ETH = address(0);  // Set your deployed address
-    address public constant GOLD_TOKEN_BSC = address(0);  // Set your deployed address
-    address public constant GOLD_LOTTERY = address(0);    // Set your deployed address
+    address public constant GOLD_TOKEN_ETH = address(0); // Set your deployed address
+    address public constant GOLD_TOKEN_BSC = address(0); // Set your deployed address
+    address public constant GOLD_LOTTERY = address(0); // Set your deployed address
     address public constant GOLD_BRIDGE_ETH = address(0); // Set your deployed address
     address public constant GOLD_BRIDGE_BSC = address(0); // Set your deployed address
 
@@ -61,8 +61,14 @@ contract InteractScript is Script {
             IGoldToken token = IGoldToken(GOLD_TOKEN_BSC);
             IGoldBridge bridge = IGoldBridge(GOLD_BRIDGE_BSC);
 
-            uint256 chainSelector = chainHelper.chainConfigs(ChainHelper.Chain.Mainnet).chainSelector;
-            uint256 fees = bridge.getFeeEstimate(uint64(chainSelector), msg.sender, amount);
+            uint256 chainSelector = chainHelper
+                .chainConfigs(ChainHelper.Chain.Mainnet)
+                .chainSelector;
+            uint256 fees = bridge.getFeeEstimate(
+                uint64(chainSelector),
+                msg.sender,
+                amount
+            );
 
             console.log("Bridging", amount, "tokens from BSC to ETH");
             console.log("Estimated fees:", fees);
@@ -81,8 +87,14 @@ contract InteractScript is Script {
             IGoldToken token = IGoldToken(GOLD_TOKEN_ETH);
             IGoldBridge bridge = IGoldBridge(GOLD_BRIDGE_ETH);
 
-            uint256 chainSelector = chainHelper.chainConfigs(ChainHelper.Chain.BSC).chainSelector;
-            uint256 fees = bridge.getFeeEstimate(uint64(chainSelector), msg.sender, amount);
+            uint256 chainSelector = chainHelper
+                .chainConfigs(ChainHelper.Chain.BSC)
+                .chainSelector;
+            uint256 fees = bridge.getFeeEstimate(
+                uint64(chainSelector),
+                msg.sender,
+                amount
+            );
 
             console.log("Bridging", amount, "tokens from ETH to BSC");
             console.log("Estimated fees:", fees);
@@ -110,7 +122,7 @@ contract InteractScript is Script {
         console.log("Prize pool:", round.prizePool);
         console.log("Start time:", round.startTime);
         console.log("End time:", round.endTime);
-        
+
         if (round.isComplete) {
             console.log("Round is complete");
             console.log("Winner:", round.winner);
@@ -139,7 +151,7 @@ contract InteractScript is Script {
         console.log("GOLD tokens for 1 ETH:", tokensFor1ETH);
     }
 
-    function run() public {
+    function run() public virtual {
         // Default behavior: show current prices and lottery status
         getPrices();
         checkLottery();
