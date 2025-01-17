@@ -1,43 +1,63 @@
-name: CI
+name: Tests
 
 on:
   push:
+    branches:
+      - main
+      - develop
   pull_request:
-  workflow_dispatch:
+    branches:
+      - main
+      - develop
 
 env:
   FOUNDRY_PROFILE: ci
+  ETH_RPC_URL: ${{ secrets.ETH_RPC_URL }}
+  BSC_RPC_URL: ${{ secrets.BSC_RPC_URL }}
 
 jobs:
   check:
-    strategy:
-      fail-fast: true
-
     name: Foundry project
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
-
-      - name: Show Forge version
-        run: |
-          forge --version
-
-      - name: Run Forge fmt
-        run: |
-          forge fmt --check
-        id: fmt
+        with:
+          version: nightly
 
       - name: Run Forge build
         run: |
+          forge --version
           forge build --sizes
         id: build
 
-      - name: Run Forge tests
+      - name: Run local tests
+        run: forge test -vvv
+        id: local-test
+
+      - name: Run forked tests
+        if: env.ETH_RPC_URL != null && env.BSC_RPC_URL != null
         run: |
-          forge test -vvv
-        id: test
+          forge test --fork-url $ETH_RPC_URL --fork-block-number 17900000 -vvv
+          forge test --fork-url $BSC_RPC_URL --fork-block-number 31000000 -vvv
+        id: fork-test
+
+      - name: Check gas snapshots
+        run: forge snapshot --check
+        id: gas-check
+
+      - name: Run coverage report
+        run: forge coverage --report lcov
+        id: coverage
+
+      # Optional: upload coverage reports to Codecov
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./lcov.info
+          fail_ci_if_error: true
