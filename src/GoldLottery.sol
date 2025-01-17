@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
-import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+import "@chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
 import "./interfaces/IGoldLottery.sol";
 
@@ -14,10 +14,10 @@ import "./interfaces/IGoldLottery.sol";
  * @notice Lottery contract that uses Chainlink VRF for random number generation and Automation for automated draws
  * @dev This contract implements a lottery system with automatic draws and VRF-based winner selection
  */
-contract GoldLottery is 
-    IGoldLottery, 
-    UUPSUpgradeable, 
-    OwnableUpgradeable, 
+contract GoldLottery is
+    IGoldLottery,
+    UUPSUpgradeable,
+    OwnableUpgradeable,
     VRFConsumerBaseV2,
     AutomationCompatibleInterface
 {
@@ -33,16 +33,16 @@ contract GoldLottery is
     uint256 private drawInterval;
     uint256 private minimumPrizePool;
     mapping(uint256 => address[]) private roundParticipants;
-    
+
     // Round management
     uint256 private currentRoundId;
     mapping(uint256 => Round) private rounds;
     mapping(uint256 => uint256) private requestIdToRoundId;
-    
+
     // Constants
     uint256 private constant MIN_DRAW_INTERVAL = 1 days;
     uint256 private constant MAX_DRAW_INTERVAL = 30 days;
-    
+
     /**
      * @dev Constructor disabled as using upgradeable pattern
      * @param _vrfCoordinator VRF Coordinator V2 address
@@ -70,16 +70,16 @@ contract GoldLottery is
         require(_vrfCoordinator != address(0), "Invalid VRF coordinator");
         require(_interval >= MIN_DRAW_INTERVAL, "Interval too short");
         require(_interval <= MAX_DRAW_INTERVAL, "Interval too long");
-        
+
         __Ownable_init(msg.sender);
         __UUPSUpgradeable_init();
-        
+
         vrfCoordinator = VRFCoordinatorV2Interface(_vrfCoordinator);
         keyHash = _keyHash;
         subscriptionId = _subscriptionId;
         drawInterval = _interval;
         minimumPrizePool = _minimumPrize;
-        
+
         // Initialize first round
         _startNewRound();
     }
@@ -89,25 +89,25 @@ contract GoldLottery is
      */
     function receiveFunds() external payable override {
         require(msg.value > 0, "No funds sent");
-        
+
         // Add to current round's prize pool
         rounds[currentRoundId].prizePool += msg.value;
-        
+
         // Add sender to participants if not already included
         address[] storage participants = roundParticipants[currentRoundId];
         bool isNewParticipant = true;
-        
+
         for (uint256 i = 0; i < participants.length; i++) {
             if (participants[i] == msg.sender) {
                 isNewParticipant = false;
                 break;
             }
         }
-        
+
         if (isNewParticipant) {
             participants.push(msg.sender);
         }
-        
+
         emit FundsReceived(msg.sender, msg.value);
     }
 
@@ -116,7 +116,10 @@ contract GoldLottery is
      * @dev Can only be called by the contract itself or the owner
      */
     function startNewRound() external override {
-        require(msg.sender == address(this) || msg.sender == owner(), "Unauthorized");
+        require(
+            msg.sender == address(this) || msg.sender == owner(),
+            "Unauthorized"
+        );
         _startNewRound();
     }
 
@@ -133,7 +136,7 @@ contract GoldLottery is
             isComplete: false,
             prizeClaimed: false
         });
-        
+
         emit LotteryStarted(currentRoundId, block.timestamp);
     }
 
@@ -147,22 +150,22 @@ contract GoldLottery is
         uint256[] memory randomWords
     ) internal override {
         require(randomWords.length > 0, "No random words");
-        
+
         uint256 roundId = requestIdToRoundId[requestId];
         require(!rounds[roundId].isComplete, "Round already complete");
-        
+
         address[] memory participants = roundParticipants[roundId];
         require(participants.length > 0, "No participants");
-        
+
         // Select winner
         uint256 winnerIndex = randomWords[0] % participants.length;
         address winner = participants[winnerIndex];
-        
+
         rounds[roundId].winner = winner;
         rounds[roundId].isComplete = true;
-        
+
         emit LotteryEnded(roundId, winner, rounds[roundId].prizePool);
-        
+
         // Start new round
         _startNewRound();
     }
@@ -176,13 +179,13 @@ contract GoldLottery is
         require(round.isComplete, "Round not complete");
         require(round.winner == msg.sender, "Not winner");
         require(!round.prizeClaimed, "Prize already claimed");
-        
+
         round.prizeClaimed = true;
         uint256 prize = round.prizePool;
-        
+
         (bool success, ) = msg.sender.call{value: prize}("");
         require(success, "Transfer failed");
-        
+
         emit PrizeWithdrawn(msg.sender, prize);
     }
 
@@ -194,13 +197,19 @@ contract GoldLottery is
      */
     function checkUpkeep(
         bytes calldata checkData
-    ) external view override returns (bool upkeepNeeded, bytes memory performData) {
+    )
+        external
+        view
+        override
+        returns (bool upkeepNeeded, bytes memory performData)
+    {
         Round memory currentRound = rounds[currentRoundId];
-        upkeepNeeded = block.timestamp >= currentRound.endTime && 
-                       currentRound.prizePool >= minimumPrizePool &&
-                       !currentRound.isComplete &&
-                       roundParticipants[currentRoundId].length > 0;
-        
+        upkeepNeeded =
+            block.timestamp >= currentRound.endTime &&
+            currentRound.prizePool >= minimumPrizePool &&
+            !currentRound.isComplete &&
+            roundParticipants[currentRoundId].length > 0;
+
         return (upkeepNeeded, "");
     }
 
@@ -209,7 +218,7 @@ contract GoldLottery is
      * @param performData Data from checkUpkeep
      */
     function performUpkeep(bytes calldata performData) external {
-        (bool upkeepNeeded,) = checkUpkeep("");
+        (bool upkeepNeeded, ) = checkUpkeep("");
         require(upkeepNeeded, "Upkeep not needed");
 
         uint256 requestId = vrfCoordinator.requestRandomWords(
@@ -219,7 +228,7 @@ contract GoldLottery is
             CALLBACK_GAS_LIMIT,
             NUM_WORDS
         );
-        
+
         requestIdToRoundId[requestId] = currentRoundId;
     }
 
@@ -236,7 +245,9 @@ contract GoldLottery is
      * @param roundId ID of the round
      * @return Round information
      */
-    function getRoundInfo(uint256 roundId) external view override returns (Round memory) {
+    function getRoundInfo(
+        uint256 roundId
+    ) external view override returns (Round memory) {
         return rounds[roundId];
     }
 
@@ -245,7 +256,9 @@ contract GoldLottery is
      * @param roundId ID of the round
      * @return Array of participant addresses
      */
-    function getRoundParticipants(uint256 roundId) external view returns (address[] memory) {
+    function getRoundParticipants(
+        uint256 roundId
+    ) external view returns (address[] memory) {
         return roundParticipants[roundId];
     }
 
@@ -274,7 +287,7 @@ contract GoldLottery is
     function emergencyWithdraw() external override onlyOwner {
         uint256 balance = address(this).balance;
         require(balance > 0, "No balance to withdraw");
-        
+
         (bool success, ) = msg.sender.call{value: balance}("");
         require(success, "Transfer failed");
     }
@@ -283,7 +296,9 @@ contract GoldLottery is
      * @notice Required by UUPS
      * @param newImplementation Address of new implementation
      */
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
 
     /**
      * @notice Receive function to accept ETH payments

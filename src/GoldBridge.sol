@@ -29,7 +29,7 @@ contract GoldBridge is IGoldBridge, UUPSUpgradeable, OwnableUpgradeable {
 
     // BSC Chain Selector
     uint64 private constant BSC_CHAIN_SELECTOR = 13264668187771770619;
-    
+
     /**
      * @dev Constructor to set immutable variables
      * @param _router CCIP router address
@@ -66,9 +66,15 @@ contract GoldBridge is IGoldBridge, UUPSUpgradeable, OwnableUpgradeable {
         uint256 amount
     ) external payable override {
         require(!paused, "GoldBridge: bridging is paused");
-        require(supportedChains[destinationChainSelector], "GoldBridge: chain not supported");
+        require(
+            supportedChains[destinationChainSelector],
+            "GoldBridge: chain not supported"
+        );
         require(amount > 0, "GoldBridge: amount must be > 0");
-        require(token.balanceOf(msg.sender) >= amount, "GoldBridge: insufficient balance");
+        require(
+            token.balanceOf(msg.sender) >= amount,
+            "GoldBridge: insufficient balance"
+        );
         require(receiver != address(0), "GoldBridge: invalid receiver");
 
         // Prepare the message
@@ -80,7 +86,10 @@ contract GoldBridge is IGoldBridge, UUPSUpgradeable, OwnableUpgradeable {
         );
 
         // Get the fee for the CCIP transfer
-        uint256 fees = i_router.getFee(destinationChainSelector, evm2AnyMessage);
+        uint256 fees = i_router.getFee(
+            destinationChainSelector,
+            evm2AnyMessage
+        );
         require(msg.value >= fees, "GoldBridge: insufficient fees");
 
         // Transfer the tokens to this contract
@@ -121,25 +130,27 @@ contract GoldBridge is IGoldBridge, UUPSUpgradeable, OwnableUpgradeable {
         bytes memory messageData,
         uint64 destinationChainSelector
     ) internal pure returns (Client.EVM2AnyMessage memory) {
-        return Client.EVM2AnyMessage({
-            receiver: abi.encode(receiver),
-            data: messageData,
-            tokenAmounts: new Client.EVMTokenAmount[](0),
-            extraArgs: Client._argsToBytes(
-                Client.EVMExtraArgsV1({gasLimit: 200_000})
-            ),
-            feeToken: address(0) // Use native token for fees
-        });
+        return
+            Client.EVM2AnyMessage({
+                receiver: abi.encode(receiver),
+                data: messageData,
+                tokenAmounts: new Client.EVMTokenAmount[](0),
+                extraArgs: Client._argsToBytes(
+                    Client.EVMExtraArgsV1({gasLimit: 200_000})
+                ),
+                feeToken: address(0) // Use native token for fees
+            });
     }
 
     /**
      * @notice Receives CCIP messages
      * @param data The CCIP message data
      */
-    function _ccipReceive(
-        bytes memory data
-    ) external override {
-        require(msg.sender == address(i_router), "GoldBridge: caller must be router");
+    function _ccipReceive(bytes memory data) external override {
+        require(
+            msg.sender == address(i_router),
+            "GoldBridge: caller must be router"
+        );
         require(!paused, "GoldBridge: bridging is paused");
 
         (address sender, address receiver, uint256 amount) = abi.decode(
@@ -148,7 +159,7 @@ contract GoldBridge is IGoldBridge, UUPSUpgradeable, OwnableUpgradeable {
         );
 
         require(receiver != address(0), "GoldBridge: invalid receiver");
-        
+
         // Mint tokens to the receiver
         token.mint(receiver, amount);
 
@@ -165,7 +176,12 @@ contract GoldBridge is IGoldBridge, UUPSUpgradeable, OwnableUpgradeable {
      * @notice Gets supported chains
      * @return Array of supported chain selectors
      */
-    function getSupportedChains() external view override returns (uint64[] memory) {
+    function getSupportedChains()
+        external
+        view
+        override
+        returns (uint64[] memory)
+    {
         uint256 count;
         uint64[] memory chains = new uint64[](2); // Max supported chains
 
@@ -223,7 +239,9 @@ contract GoldBridge is IGoldBridge, UUPSUpgradeable, OwnableUpgradeable {
      * @notice Adds a supported chain
      * @param chainSelector Chain selector to add
      */
-    function addSupportedChain(uint64 chainSelector) external override onlyOwner {
+    function addSupportedChain(
+        uint64 chainSelector
+    ) external override onlyOwner {
         supportedChains[chainSelector] = true;
     }
 
@@ -231,7 +249,9 @@ contract GoldBridge is IGoldBridge, UUPSUpgradeable, OwnableUpgradeable {
      * @notice Removes a supported chain
      * @param chainSelector Chain selector to remove
      */
-    function removeSupportedChain(uint64 chainSelector) external override onlyOwner {
+    function removeSupportedChain(
+        uint64 chainSelector
+    ) external override onlyOwner {
         supportedChains[chainSelector] = false;
     }
 
@@ -263,7 +283,9 @@ contract GoldBridge is IGoldBridge, UUPSUpgradeable, OwnableUpgradeable {
      * @notice Required implementation by UUPS
      * @param newImplementation Address of new implementation
      */
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
 
     receive() external payable {}
 }
