@@ -22,6 +22,13 @@ contract MockVRFCoordinator is VRFCoordinatorV2Interface {
     
     mapping(uint256 => RequestConfig) private requests;
 
+    /**
+     * @notice Actually fulfill random words (internal function)
+     */
+    function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) public {
+        VRFConsumerBaseV2(consumerAddresses[requestId]).rawFulfillRandomWords(requestId, randomWords);
+    }
+
     function createSubscription() external override returns (uint64 subId) {
         return 1;
     }
@@ -52,10 +59,6 @@ contract MockVRFCoordinator is VRFCoordinatorV2Interface {
             numWords: numWords
         });
         return requestId;
-    }
-
-    function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) external {
-        VRFConsumerBaseV2(consumerAddresses[requestId]).rawFulfillRandomWords(requestId, randomWords);
     }
 
     // Helper function for tests
