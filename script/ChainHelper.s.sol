@@ -104,4 +104,10 @@ contract ChainHelper is Script {
         ChainType currentChain = detectChain();
         chainConfigs[currentChain].subscriptionId = subscriptionId;
     }
+
+    function getChainSelector(
+        ChainType chainType
+    ) public view returns (uint64) {
+        return chainConfigs[chainType].chainSelector;
+    }
 }
