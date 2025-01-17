@@ -9,47 +9,44 @@ import "../script/ChainHelper.s.sol";
 
 contract DeployTestScript is Script {
     function run() public {
-        // Définir explicitement le deployer
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
-        
+
         vm.startBroadcast(deployerPrivateKey);
 
         // Déployer les MockPriceFeeds
         MockPriceFeed ethUsdFeed = new MockPriceFeed();
         MockPriceFeed xauUsdFeed = new MockPriceFeed();
 
-        // Définir des prix de test
-        ethUsdFeed.setPrice(2000 * 10**8);  // $2000 
-        xauUsdFeed.setPrice(2000 * 10**8);  // $2000
+        ethUsdFeed.setPrice(2000 * 10 ** 8);
+        xauUsdFeed.setPrice(2000 * 10 ** 8);
 
         // Déployer la lottery
-        address mockVRFCoordinator = address(0x1);  // Mock VRF Coordinator
+        address mockVRFCoordinator = address(0x1);
         GoldLottery lottery = new GoldLottery(mockVRFCoordinator);
-        
-        // Initialiser la lottery
-        lottery.initialize(
-            mockVRFCoordinator,  // VRF Coordinator
-            bytes32(0),           // Key Hash
-            0,                    // Subscription ID
-            7 days,               // Duration
-            1 ether               // Entry Price
-        );
+
+        lottery.initialize(mockVRFCoordinator, bytes32(0), 0, 7 days, 1 ether);
 
         // Déployer le token
         GoldToken goldToken = new GoldToken();
-        goldToken.initialize(
-            address(ethUsdFeed),
-            address(xauUsdFeed),
-            address(lottery)
-        );
 
-        // Afficher les adresses déployées
         console.log("Deployer:", deployer);
         console.log("ETH/USD Price Feed:", address(ethUsdFeed));
         console.log("XAU/USD Price Feed:", address(xauUsdFeed));
         console.log("Gold Lottery:", address(lottery));
         console.log("Gold Token:", address(goldToken));
+
+        // Log avant initialisation
+        console.log("Before initialize: ETH Feed", address(ethUsdFeed));
+        console.log("Before initialize: XAU Feed", address(xauUsdFeed));
+        console.log("Before initialize: Lottery", address(lottery));
+
+        // Initialisation du token
+        goldToken.initialize(
+            address(ethUsdFeed),
+            address(xauUsdFeed),
+            address(lottery)
+        );
 
         vm.stopBroadcast();
     }

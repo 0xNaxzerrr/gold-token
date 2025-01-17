@@ -15,7 +15,12 @@ import "./interfaces/IGoldToken.sol";
  * @dev This contract implements an ERC20 token that can be minted in exchange for ETH
  * The token value is based on the gold price (XAU/USD) and ETH/USD rate
  */
-contract GoldToken is IGoldToken, ERC20Upgradeable, UUPSUpgradeable, OwnableUpgradeable {
+contract GoldToken is
+    IGoldToken,
+    ERC20Upgradeable,
+    UUPSUpgradeable,
+    OwnableUpgradeable
+{
     // Chainlink Price Feed Interfaces
     AggregatorV3Interface public ethUsdPriceFeed;
     AggregatorV3Interface public xauUsdPriceFeed;
@@ -28,10 +33,10 @@ contract GoldToken is IGoldToken, ERC20Upgradeable, UUPSUpgradeable, OwnableUpgr
     uint256 public constant COMMISSION_RATE = 500; // 5% = 500 basis points
     uint256 public constant BASIS_POINTS = 10000;
     uint256 public constant GOLD_DECIMALS = 18;
-    
+
     // Price feed heartbeat
     uint256 public constant PRICE_FEED_TIMEOUT = 1 hours;
-    
+
     /**
      * @dev Constructor disabled as using upgradeable pattern
      */
@@ -51,14 +56,17 @@ contract GoldToken is IGoldToken, ERC20Upgradeable, UUPSUpgradeable, OwnableUpgr
         address _xauUsdPriceFeed,
         address _lotteryContract
     ) public initializer {
-        __ERC20_init("GoldToken", "GOLD");
-        __Ownable_init(msg.sender);
-        __UUPSUpgradeable_init();
-
+        // Vérifications
         require(_ethUsdPriceFeed != address(0), "Invalid ETH/USD feed");
         require(_xauUsdPriceFeed != address(0), "Invalid XAU/USD feed");
         require(_lotteryContract != address(0), "Invalid lottery");
 
+        // Initialisation des contrats parent
+        __ERC20_init("GoldToken", "GOLD");
+        __Ownable_init(msg.sender);
+        __UUPSUpgradeable_init();
+
+        // Initialisation des variables
         ethUsdPriceFeed = AggregatorV3Interface(_ethUsdPriceFeed);
         xauUsdPriceFeed = AggregatorV3Interface(_xauUsdPriceFeed);
         lotteryContract = IGoldLottery(_lotteryContract);
@@ -78,7 +86,10 @@ contract GoldToken is IGoldToken, ERC20Upgradeable, UUPSUpgradeable, OwnableUpgr
         ) = ethUsdPriceFeed.latestRoundData();
 
         require(answer > 0, "Negative ETH/USD price");
-        require(block.timestamp - updatedAt <= PRICE_FEED_TIMEOUT, "Stale ETH price");
+        require(
+            block.timestamp - updatedAt <= PRICE_FEED_TIMEOUT,
+            "Stale ETH price"
+        );
         require(answeredInRound >= roundId, "ETH price round not complete");
 
         return uint256(answer);
@@ -98,7 +109,10 @@ contract GoldToken is IGoldToken, ERC20Upgradeable, UUPSUpgradeable, OwnableUpgr
         ) = xauUsdPriceFeed.latestRoundData();
 
         require(answer > 0, "Negative XAU/USD price");
-        require(block.timestamp - updatedAt <= PRICE_FEED_TIMEOUT, "Stale gold price");
+        require(
+            block.timestamp - updatedAt <= PRICE_FEED_TIMEOUT,
+            "Stale gold price"
+        );
         require(answeredInRound >= roundId, "Gold price round not complete");
 
         return uint256(answer);
@@ -109,24 +123,28 @@ contract GoldToken is IGoldToken, ERC20Upgradeable, UUPSUpgradeable, OwnableUpgr
      * @param ethAmount Amount of ETH sent
      * @return goldTokens Amount of GOLD tokens to mint
      */
-    function calculateGoldTokens(uint256 ethAmount) public view returns (uint256) {
+    function calculateGoldTokens(
+        uint256 ethAmount
+    ) public view returns (uint256) {
         uint256 ethUsdPrice = getEthUsdPrice();
         uint256 xauUsdPrice = getXauUsdPrice();
-        
+
         // Calculate USD value of sent ETH
         uint256 ethDecimals = 18;
-        uint256 usdValue = (ethAmount * ethUsdPrice) / 10**ethDecimals;
-        
+        uint256 usdValue = (ethAmount * ethUsdPrice) / 10 ** ethDecimals;
+
         // Apply 5% commission
         uint256 commissionAmount = (usdValue * COMMISSION_RATE) / BASIS_POINTS;
         uint256 remainingUsdValue = usdValue - commissionAmount;
-        
+
         // 50% of remaining amount for tokens
         uint256 tokenUsdValue = remainingUsdValue / 2;
-        
+
         // Convert to GOLD tokens (1 GOLD = 1 gram of gold)
         uint256 priceDecimals = 8; // Chainlink price feeds use 8 decimals
-        return (tokenUsdValue * 10**GOLD_DECIMALS) / (xauUsdPrice * 10**(priceDecimals - 8));
+        return
+            (tokenUsdValue * 10 ** GOLD_DECIMALS) /
+            (xauUsdPrice * 10 ** (priceDecimals - 8));
     }
 
     /**
@@ -134,7 +152,7 @@ contract GoldToken is IGoldToken, ERC20Upgradeable, UUPSUpgradeable, OwnableUpgr
      */
     function mint() external payable {
         require(msg.value > 0, "Must send ETH");
-        
+
         uint256 goldTokens = calculateGoldTokens(msg.value);
         require(goldTokens > 0, "Invalid token amount");
 
@@ -147,7 +165,9 @@ contract GoldToken is IGoldToken, ERC20Upgradeable, UUPSUpgradeable, OwnableUpgr
         _mint(msg.sender, goldTokens);
 
         // Send to lottery
-        (bool success, ) = address(lotteryContract).call{value: lotteryAmount}("");
+        (bool success, ) = address(lotteryContract).call{value: lotteryAmount}(
+            ""
+        );
         require(success, "Lottery transfer failed");
 
         emit TokensMinted(msg.sender, msg.value, goldTokens);
@@ -165,16 +185,19 @@ contract GoldToken is IGoldToken, ERC20Upgradeable, UUPSUpgradeable, OwnableUpgr
         uint256 xauUsdPrice = getXauUsdPrice();
 
         // Calculate USD value of tokens
-        uint256 usdValue = (amount * xauUsdPrice) / 10**GOLD_DECIMALS;
-        
+        uint256 usdValue = (amount * xauUsdPrice) / 10 ** GOLD_DECIMALS;
+
         // Convert to ETH
-        uint256 ethAmount = (usdValue * 10**18) / ethUsdPrice;
-        
+        uint256 ethAmount = (usdValue * 10 ** 18) / ethUsdPrice;
+
         // Apply 5% commission
         uint256 commissionAmount = (ethAmount * COMMISSION_RATE) / BASIS_POINTS;
         uint256 returnAmount = ethAmount - commissionAmount;
 
-        require(address(this).balance >= returnAmount, "Insufficient ETH in contract");
+        require(
+            address(this).balance >= returnAmount,
+            "Insufficient ETH in contract"
+        );
 
         // Burn tokens
         _burn(msg.sender, amount);
@@ -233,7 +256,7 @@ contract GoldToken is IGoldToken, ERC20Upgradeable, UUPSUpgradeable, OwnableUpgr
     ) external onlyOwner {
         require(_ethUsdPriceFeed != address(0), "Invalid ETH/USD address");
         require(_xauUsdPriceFeed != address(0), "Invalid XAU/USD address");
-        
+
         ethUsdPriceFeed = AggregatorV3Interface(_ethUsdPriceFeed);
         xauUsdPriceFeed = AggregatorV3Interface(_xauUsdPriceFeed);
     }
@@ -242,7 +265,9 @@ contract GoldToken is IGoldToken, ERC20Upgradeable, UUPSUpgradeable, OwnableUpgr
      * @notice Allows owner to update the lottery contract address
      * @param _lotteryContract New lottery contract address
      */
-    function updateLotteryContract(address _lotteryContract) external onlyOwner {
+    function updateLotteryContract(
+        address _lotteryContract
+    ) external onlyOwner {
         require(_lotteryContract != address(0), "Invalid lottery address");
         lotteryContract = IGoldLottery(_lotteryContract);
     }
@@ -253,7 +278,7 @@ contract GoldToken is IGoldToken, ERC20Upgradeable, UUPSUpgradeable, OwnableUpgr
     function withdrawCommissions() external onlyOwner {
         uint256 balance = address(this).balance;
         require(balance > 0, "No commissions to withdraw");
-        
+
         (bool success, ) = msg.sender.call{value: balance}("");
         require(success, "Commission withdrawal failed");
     }
@@ -262,7 +287,9 @@ contract GoldToken is IGoldToken, ERC20Upgradeable, UUPSUpgradeable, OwnableUpgr
      * @notice Required implementation by UUPS
      * @param newImplementation Address of new implementation
      */
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
 
     receive() external payable {}
 }
