@@ -7,8 +7,8 @@ import "../src/interfaces/IGoldBridge.sol";
 import "./ChainHelper.s.sol";
 
 contract InteractScript is Script {
-    address public constant GOLD_TOKEN_ETH = address(0);  // Set your deployed address
-    address public constant GOLD_TOKEN_BSC = address(0);  // Set your deployed address
+    address public constant GOLD_TOKEN_ETH = address(0); // Set your deployed address
+    address public constant GOLD_TOKEN_BSC = address(0); // Set your deployed address
     address public constant GOLD_BRIDGE_ETH = address(0); // Set your deployed address
     address public constant GOLD_BRIDGE_BSC = address(0); // Set your deployed address
 
@@ -53,8 +53,14 @@ contract InteractScript is Script {
             IGoldToken token = IGoldToken(GOLD_TOKEN_BSC);
             IGoldBridge bridge = IGoldBridge(GOLD_BRIDGE_BSC);
 
-            uint64 chainSelector = uint64(chainHelper.chainConfigs(ChainHelper.ChainType.SepoliaTestnet).chainSelector);
-            uint256 fees = bridge.getFeeEstimate(chainSelector, msg.sender, amount);
+            uint64 chainSelector = chainHelper
+                .chainConfigs(ChainHelper.ChainType.SepoliaTestnet)
+                .chainSelector;
+            uint256 fees = bridge.getFeeEstimate(
+                chainSelector,
+                msg.sender,
+                amount
+            );
 
             console.log("Bridging", amount, "tokens from BSC to ETH");
             console.log("Estimated fees:", fees);
@@ -63,18 +69,21 @@ contract InteractScript is Script {
             token.approve(GOLD_BRIDGE_BSC, amount);
 
             vm.broadcast();
-            bridge.bridgeTokens{value: fees}(
-                chainSelector,
-                msg.sender,
-                amount
-            );
+            bridge.bridgeTokens{value: fees}(chainSelector, msg.sender, amount);
         } else {
             // Bridge from ETH to BSC
             IGoldToken token = IGoldToken(GOLD_TOKEN_ETH);
             IGoldBridge bridge = IGoldBridge(GOLD_BRIDGE_ETH);
 
-            uint64 chainSelector = uint64(chainHelper.chainConfigs(ChainHelper.ChainType.BNBTestnet).chainSelector);
-            uint256 fees = bridge.getFeeEstimate(chainSelector, msg.sender, amount);
+            uint64 chainSelector = chainHelper
+                .chainConfigs(ChainType.SepoliaTestnet)
+                .chainSelector;
+
+            uint256 fees = bridge.getFeeEstimate(
+                chainSelector,
+                msg.sender,
+                amount
+            );
 
             console.log("Bridging", amount, "tokens from ETH to BSC");
             console.log("Estimated fees:", fees);
@@ -83,11 +92,7 @@ contract InteractScript is Script {
             token.approve(GOLD_BRIDGE_ETH, amount);
 
             vm.broadcast();
-            bridge.bridgeTokens{value: fees}(
-                chainSelector,
-                msg.sender,
-                amount
-            );
+            bridge.bridgeTokens{value: fees}(chainSelector, msg.sender, amount);
         }
 
         console.log("Bridge transaction sent successfully");
