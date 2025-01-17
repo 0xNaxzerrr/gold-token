@@ -12,7 +12,8 @@ interface IGoldToken {
     // Core functions
     function mint() external payable;
     function burn(uint256 amount) external;
-    function bridgeTokens(uint64 destinationChainSelector, address receiver, uint256 amount) external;
+    function bridgeMint(address user, uint256 amount) external;
+    function bridgeBurn(address user, uint256 amount) external;
     
     // View functions
     function getEthUsdPrice() external view returns (uint256);
@@ -22,5 +23,6 @@ interface IGoldToken {
     // Admin functions
     function updatePriceFeeds(address _ethUsdPriceFeed, address _xauUsdPriceFeed) external;
     function updateLotteryContract(address _lotteryContract) external;
+    function updateBridgeContract(address _bridgeContract) external;
     function withdrawCommissions() external;
 }
