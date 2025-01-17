@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
 
 /**
@@ -10,7 +10,7 @@ import "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
  */
 contract MockVRFCoordinator is VRFCoordinatorV2Interface {
     uint256 private nextRequestId = 1;
-    mapping(uint256 => address) private consumers;
+    mapping(uint256 => address) private consumerAddresses;
 
     struct RequestConfig {
         bytes32 keyHash;
@@ -30,7 +30,7 @@ contract MockVRFCoordinator is VRFCoordinatorV2Interface {
         uint96 balance,
         uint64 reqCount,
         address owner,
-        address[] memory consumers
+        address[] memory consumersList
     ) {
         return (0, 0, address(0), new address[](0));
     }
@@ -43,7 +43,7 @@ contract MockVRFCoordinator is VRFCoordinatorV2Interface {
         uint32 numWords
     ) external override returns (uint256 requestId) {
         requestId = nextRequestId++;
-        consumers[requestId] = msg.sender;
+        consumerAddresses[requestId] = msg.sender;
         requests[requestId] = RequestConfig({
             keyHash: keyHash,
             subId: subId,
@@ -55,7 +55,7 @@ contract MockVRFCoordinator is VRFCoordinatorV2Interface {
     }
 
     function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) external {
-        VRFConsumerBaseV2(consumers[requestId]).rawFulfillRandomWords(requestId, randomWords);
+        VRFConsumerBaseV2(consumerAddresses[requestId]).rawFulfillRandomWords(requestId, randomWords);
     }
 
     // Helper function for tests
