@@ -33,4 +33,12 @@ interface IGoldLottery {
     function setDrawInterval(uint256 _interval) external;
     function setMinimumPrizePool(uint256 _minimum) external;
     function emergencyWithdraw() external;
+
+    function initialize(
+        address _vrfCoordinator,
+        bytes32 _keyHash,
+        uint64 _subscriptionId,
+        uint256 _interval,
+        uint256 _minimumPrize
+    ) external;
 }
