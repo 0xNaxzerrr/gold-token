@@ -146,7 +146,7 @@ contract GoldLottery is
 
     function checkUpkeep(
         bytes calldata checkData
-    ) external view override(AutomationCompatibleInterface) returns (bool upkeepNeeded, bytes memory performData) {
+    ) external view override(IGoldLottery, AutomationCompatibleInterface) returns (bool upkeepNeeded, bytes memory performData) {
         Round memory currentRound = rounds[currentRoundId];
         upkeepNeeded = block.timestamp >= currentRound.endTime && 
                        currentRound.prizePool >= minimumPrizePool &&
@@ -156,7 +156,7 @@ contract GoldLottery is
         return (upkeepNeeded, "");
     }
 
-    function performUpkeep(bytes calldata performData) external override(AutomationCompatibleInterface) {
+    function performUpkeep(bytes calldata performData) external override(IGoldLottery, AutomationCompatibleInterface) {
         (bool upkeepNeeded, ) = this.checkUpkeep("");
         require(upkeepNeeded, "Upkeep not needed");
         
