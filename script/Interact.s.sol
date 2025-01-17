@@ -76,7 +76,7 @@ contract InteractScript is Script {
             IGoldBridge bridge = IGoldBridge(GOLD_BRIDGE_ETH);
 
             uint64 chainSelector = chainHelper
-                .chainConfigs(ChainType.SepoliaTestnet)
+                .chainConfigs(ChainHelper.ChainType.SepoliaTestnet)
                 .chainSelector;
 
             uint256 fees = bridge.getFeeEstimate(
