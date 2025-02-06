@@ -5,6 +5,9 @@ import "forge-std/Test.sol";
 import "../src/GoldLottery.sol";
 import "./mocks/MockVRFCoordinator.sol";
 
+
+error OwnableUnauthorizedAccount(address account);
+
 contract GoldLotteryTest is Test {
     GoldLottery public lottery;
     MockVRFCoordinator public vrfCoordinator;
@@ -45,7 +48,11 @@ contract GoldLotteryTest is Test {
         assertEq(lottery.getCurrentRound(), 1, "Should start at round 1");
         IGoldLottery.Round memory round = lottery.getRoundInfo(1);
         assertEq(round.startTime, block.timestamp, "Should start now");
-        assertEq(round.endTime, block.timestamp + DRAW_INTERVAL, "Should end after interval");
+        assertEq(
+            round.endTime,
+            block.timestamp + DRAW_INTERVAL,
+            "Should end after interval"
+        );
         assertEq(round.prizePool, 0, "Should start with empty pool");
         assertFalse(round.isComplete, "Should not be complete");
     }
@@ -67,7 +74,11 @@ contract GoldLotteryTest is Test {
         lottery.receiveFunds{value: 2 ether}();
 
         IGoldLottery.Round memory round = lottery.getRoundInfo(1);
-        assertEq(round.prizePool, 3 ether, "Prize pool should be sum of contributions");
+        assertEq(
+            round.prizePool,
+            3 ether,
+            "Prize pool should be sum of contributions"
+        );
 
         address[] memory participants = lottery.getRoundParticipants(1);
         assertEq(participants.length, 2, "Should have two participants");
@@ -134,11 +145,7 @@ contract GoldLotteryTest is Test {
             initialBalance + 3 ether,
             "Winner should receive prize"
         );
-        assertEq(
-            address(lottery).balance,
-            0,
-            "Lottery should have no balance"
-        );
+        assertEq(address(lottery).balance, 0, "Lottery should have no balance");
 
         // Verify round state
         round = lottery.getRoundInfo(1);
@@ -187,7 +194,9 @@ contract GoldLotteryTest is Test {
 
         // Only owner can withdraw
         vm.prank(USER2);
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert(
+            abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, USER2)
+        );
         lottery.emergencyWithdraw();
 
         // Owner withdraws
@@ -200,11 +209,7 @@ contract GoldLotteryTest is Test {
             initialBalance + 1 ether,
             "Owner should receive funds"
         );
-        assertEq(
-            address(lottery).balance,
-            0,
-            "Lottery should have no balance"
-        );
+        assertEq(address(lottery).balance, 0, "Lottery should have no balance");
     }
 
     receive() external payable {}

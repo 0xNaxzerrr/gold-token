@@ -47,7 +47,7 @@ contract IntegrationTest is Test {
         // Test on Ethereum
         vm.selectFork(mainnetFork);
         ChainHelper.ChainConfig memory ethConfig = chainHelper.getChainConfig();
-
+        vm.makePersistent(address(chainHelper));
         vm.startPrank(OWNER);
 
         // Deploy Ethereum contracts
