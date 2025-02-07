@@ -7,16 +7,19 @@ contract MockPriceFeed is AggregatorV3Interface {
     int256 private price;
     uint8 private decimals_ = 8;
     uint80 private roundId = 1;
-    uint256 private timestamp = block.timestamp;
-    uint256 private startedAt = block.timestamp;
-    
+    uint256 private timestamp;
+    uint256 private startedAt;
+
     function setPrice(int256 _price) external {
         price = _price;
         roundId++;
-        timestamp = block.timestamp;
-        startedAt = block.timestamp;
     }
-    
+
+    function setUpdateTime(uint256 _timestamp) external {
+        timestamp = _timestamp;
+        startedAt = _timestamp;
+    }
+
     function latestRoundData() external view override returns (
         uint80 roundId_,
         int256 answer,
