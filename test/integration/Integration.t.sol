@@ -41,6 +41,9 @@ contract IntegrationTest is Test {
 
         // Initialize chainHelper
         chainHelper = new ChainHelper();
+
+        // Make chainHelper persistent for both forks
+        vm.makePersistent(address(chainHelper));
     }
 
     function testCrosschainTransfer() public {
@@ -50,7 +53,7 @@ contract IntegrationTest is Test {
         vm.makePersistent(address(chainHelper));
         vm.startPrank(OWNER);
 
-        // Deploy Ethereum contracts
+        // Deploy Ethereum contracts avec proxy
         lottery = new GoldLottery(ethConfig.vrfCoordinator);
         lottery.initialize(
             ethConfig.vrfCoordinator,
@@ -60,6 +63,7 @@ contract IntegrationTest is Test {
             1 ether
         );
 
+        // Déploiement du token avec son initialisation correcte
         tokenETH = new GoldToken();
         tokenETH.initialize(
             ethConfig.ethUsdFeed,
@@ -67,9 +71,11 @@ contract IntegrationTest is Test {
             address(lottery)
         );
 
+        // Déploiement du bridge avec son initialisation correcte
         bridgeETH = new GoldBridge(ethConfig.router, ethConfig.link);
         bridgeETH.initialize(address(tokenETH));
 
+        // Mise à jour du contrat bridge dans le token
         tokenETH.updateBridgeContract(address(bridgeETH));
 
         vm.stopPrank();
@@ -119,6 +125,4 @@ contract IntegrationTest is Test {
         uint256 bscBalance = tokenBSC.balanceOf(USER1);
         assertEq(bscBalance, balance, "Bridged balance should match");
     }
-
-    // Rest of the contract remains the same
 }

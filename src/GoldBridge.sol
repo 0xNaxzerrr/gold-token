@@ -40,7 +40,6 @@ contract GoldBridge is IGoldBridge, UUPSUpgradeable, OwnableUpgradeable {
     constructor(address _router, address _link) {
         i_router = IRouterClient(_router);
         i_link = LinkTokenInterface(_link);
-        _disableInitializers();
     }
 
     /**
